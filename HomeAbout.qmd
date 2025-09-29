@@ -1,0 +1,45 @@
+---
+title: "Home About"
+---
+
+Welcome to My About Me Page
+
+Hi! My name is Diane Kim, and I am a Master’s candidate in Data Analytics Engineering at George Mason University (GMU).
+
+I’m a mom of two kids and enjoy staying active through Brazilian Jiu-Jitsu in my free time.
+
+I am passionate about combining data and health, exploring ways to leverage analytics for meaningful insights and real-world impact. My interests include data visualization, statistical modeling, and predictive analytics, particularly applied to healthcare and public health datasets.
+
+## Objective
+
+Healthcare data analyst with extensive experience in public health research and data analysis. Skilled in SQL, database management, and health informatics, seeking to leverage data-driven insights to improve patient care and operational efficiency in the healthcare industry.
+
+## Education
+
+**George Mason University** – Master’s in Health Informatics, Candidate, 2026
+
+**American University** – Bachelor of Public Health & Economics, Washington, DC, December 2017
+
+## Certifications
+
+-   IBM Data Science Professional Certificate, December 2022
+
+## Key Skills
+
+-   **Programming & Analytics:** SQL, Stata, Python, Microsoft Access, Weka
+
+-   **Data Management:** Data Preprocessing, Database Design, Query Optimization
+
+-   **Analysis:** Statistical and Graphical Data Analysis
+
+-   **Public Health:** Program Assessment, Surveillance, and Evaluation, Community Outreach
+
+-   **Research:** Public Health Research, Literature Reviews, Project Reporting
+
+-   **Soft Skills:** Problem-solving, teamwork, project management
+
+### Current Goals
+
+I am currently focused on **learning advanced machine learning techniques** and **applying data analytics to improve health outcomes**. My long-term goal is to contribute to projects where **data drives better decisions in healthcare**.
+
+![](https://www.google.com/imgres?q=funny%20photos&imgurl=http%3A%2F%2Fgiveasht.com%2Fcdn%2Fshop%2Farticles%2F1_b935111e-a64f-496b-b959-68928d911ea6.png%3Fv%3D1682343259&imgrefurl=https%3A%2F%2Fgiveasht.com%2Fblogs%2Fnews%2Ftips-capturing-funny-dog-pictures%3Fsrsltid%3DAfmBOoqnFwOTzixeaj8cDLO7W8y43gnrn7TyJ7vISj1386S5DpIvXiS2&docid=tjBk_37gvKsRhM&tbnid=tnNDF4i5lZrpRM&vet=12ahUKEwil_5mt7fePAxXVEFkFHVqfNKcQM3oECCYQAA..i&w=1200&h=800&hcb=2&ved=2ahUKEwil_5mt7fePAxXVEFkFHVqfNKcQM3oECCYQAA)
