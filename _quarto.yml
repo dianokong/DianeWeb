@@ -4,7 +4,7 @@ project:
   output-dir: docs
 
 website:
-  title: "Diane Kim"
+  title: "CHange"
   navbar:
     left:
       - href: HomeAbout.qmd
@@ -26,3 +26,4 @@ format:
     toc: true
 
 editor: visual
+
