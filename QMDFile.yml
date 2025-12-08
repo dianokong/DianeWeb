@@ -6,7 +6,7 @@ website:
   navbar:
     left:
       - href: 1stpage.qmd
-        text: Home
+        text: Test
       - href: RQ1.qmd
         text: Research Question 1
       - href: RQ2.qmd
