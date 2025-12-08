@@ -1,0 +1,283 @@
+---
+title: "RQ1"
+format: html
+editor: visual
+---
+
+Library Download
+
+```{r}
+library(tidymodels)
+library(glmnet)
+library(xgboost)
+library(vip)
+library(haven)
+library(ranger)
+library(randomForest)
+library(tree)
+library(ISLR)
+library(dplyr)
+library (plotly)
+library (car)
+```
+
+Research Questions: 2. Which type of ER visits are the costliest for total ER expenditures? Types of tests / diagnostics? \*note: Total ER expenditure is different than out of pocket
+
+```{r}
+OGData= read.csv("C:/Users/diane/downloads/h248e.csv")
+```
+
+Looking for Missing Values -1,-7,-8 shows missing / dont know vairbales completely remove varibles with these negative values - this dropped 317 observations
+
+```{r include=FALSE}
+table(is.na(OGData)) #no missing data
+str (OGData) #shows variables are all integers and numeric
+
+OGData_clean <- OGData %>% #only took variables greater than 0
+  filter(
+    # ── RQ1 & RQ2: Tests, diagnostics, and services received ──
+    MRI_M18     >= 0,    # MRI/CT scan
+    SURGPROC    >= 0,    # Surgery performed
+    XRAYS_M18   >= 0,    # X-rays
+    LABTEST_M18 >= 0,    # Lab tests
+    EKG_M18     >= 0,    # EKG/ECG
+    SONOGRAM_M18 >= 0,   # Ultrasound
+    MAMMOG_M18  >= 0,    # Mammogram
+    RCVVAC_M18  >= 0,    # Vaccination
+    MEDPRESC    >= 0,    # Medicine prescribed
+    VSTRELCN    >= 0,    # Related to specific condition?
+    
+    # ── RQ2: Total expenditure and weight ──
+    ERXP23X     >= 0,    # Total ER expenditure (main outcome)
+    PERWT23F    >  0,    # Survey weight (always positive)
+    
+    # ── RQ1: Admission flag ──
+    ERHEVIDX    >= -1,   # -1 = treat-and-release, >0 = admitted (allow -1!)
+    
+    # ── RQ3: Out-of-pocket and payment sources (facility + doctor) ──
+    ERFSF23X    >= 0,    # OOP facility - this is Out of pocket costs to the facility / ER visit room
+    ERDSF23X    >= 0,    # OOP doctor - out of pocket costs to the doctors
+    ERFPV23X    >= 0,    # Private insurance payment (facility)
+    ERDPV23X    >= 0,    # Private insurance payment (doctor)
+    ERFMD23X    >= 0,    # Medicaid payment (facility)
+    ERDMD23X    >= 0,    # Medicaid payment (doctor)
+    ERFMR23X    >= 0,    # Medicare payment (facility)
+    ERDMR23X    >= 0     # Medicare payment (doctor)
+  )
+
+dim(OGData) #4241
+dim(OGData_clean) #3924
+bad_rows <- OGData %>% anti_join(OGData_clean)
+dim(bad_rows)
+```
+
+Renaming Variables
+
+```{r}
+OGData_clean <- OGData %>%
+  # ── Keep only the variables we actually use across all 3 RQs ──
+dplyr:: select(
+    # Person-level ID and survey weight
+    person_id   = DUPERSID,
+    weight      = PERWT23F,
+    
+    # ── RQ1: Predict hospital admission ──
+    admitted    = ERHEVIDX,        # will recode below
+    
+    # Tests & diagnostics performed in ER (all yes/no → 0/1)
+    mri_ct      = MRI_M18,
+    surgery     = SURGPROC,
+    xray        = XRAYS_M18,
+    lab_tests   = LABTEST_M18,
+    ekg         = EKG_M18,
+    ultrasound  = SONOGRAM_M18,
+    mammogram   = MAMMOG_M18,
+    vaccination = RCVVAC_M18,
+    rx_given    = MEDPRESC,
+    related_condition = VSTRELCN,
+    
+    # ── RQ2: Total ER cost drivers ──
+    total_cost  = ERXP23X,         # total expenditure (facility + doctor)
+    
+    # ── RQ3: Out-of-pocket by insurance ──
+    oop_facility = ERFSF23X,       # self/family OOP facility
+    oop_doctor   = ERDSF23X,       # self/family OOP doctor
+    
+    private_fac  = ERFPV23X,
+    private_doc  = ERDPV23X,
+    medicaid_fac = ERFMD23X,
+    medicaid_doc = ERDMD23X,
+    medicare_fac = ERFMR23X,
+    medicare_doc = ERDMR23X
+  )
+```
+
+Adding in Insurance Information
+
+```{r}
+#Cleaning Data to find Insurance v No Insurance
+OGData_clean <- OGData_clean %>%
+  mutate(Insurance = case_when(
+    (private_fac > 0  |  private_doc > 0 | medicaid_fac > 0 | medicaid_doc > 0 | medicare_fac > 0 | medicare_doc > 0) ~ "1",
+    TRUE ~ "0"
+  ))
+
+OGData_clean$Insurance <- as.numeric(OGData_clean$Insurance)
+
+```
+
+Cleaning up binary data Clean More Data - Deal with 95 & 1&2 to 0,1 remove -8 dont know variables 1 is yes 2 is no - changing to 0,1 - no - 0 yes 1
+
+```{r}
+
+yesno_vars <- c(
+  "mri_ct", "surgery", "xray", "lab_tests", "ekg",
+  "ultrasound", "mammogram", "vaccination", "rx_given",
+  "related_condition")
+
+OGData_clean <- OGData_clean %>%
+  mutate(across(all_of(yesno_vars), ~ ifelse(. == 1, 1, 0))) #keeps all the 1's and replaces the rest with 0
+
+#cleaning admitted inpatient for RQ1
+OGData_clean$admitted <- ifelse(OGData_clean$admitted == "-1", 0, 1) #-1 not admitted - changing to 0;; recoding 1 to be admitted
+table(OGData_clean$admitted) #not admitted 3345; admitted:896
+
+```
+
+Data Visualization for RQ1 - Skewed Data
+
+```{r}
+
+#creating new dataset to recode Admitted ad MRI CT to Yes / no
+RQ1Viz <- OGData_clean %>%
+mutate(admitted = factor(admitted, levels = c(0,1), labels = c("No","Yes")),
+        mri_ct = factor(mri_ct, levels = c(0,1), labels = c("No","Yes")))
+
+
+ggplotly (ggplot(RQ1Viz, aes(x = factor(admitted), fill = factor(admitted))) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Count of ER Visits by In Patient Admission Status",
+    x = "In Patient Admitted",
+    y = "Count",
+    fill = "Admitted"
+  ) +
+  theme_minimal())
+
+
+ggplotly(ggplot(RQ1Viz, aes(x = factor(admitted), fill = factor(mri_ct))) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Hospital Admission by Whether MRI CT Was Performed",
+    x = "In Patient Admitted",
+    y = "Count",
+    fill = "MRI CT"
+  ) +
+  geom_bar(position = "stack")+
+  theme_minimal())
+
+
+
+ggplotly (ggplot(OGData_clean, aes(x = factor(admitted), fill = factor(surgery))) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Hospital Admission by Whether Surgery Was Performed",
+    x = "Admitted (0 = No, 1 = Yes)",
+    y = "Count",
+    fill = "Surgery (0 = No, 1 = Yes)"
+  ) +
+  geom_bar(position = "stack")+
+  theme_minimal())
+
+
+
+```
+
+RQ 1 1. What predictors can help determine whether an ER visit results in an inpatient admission? Explore a number of predictors such as type of tests, diagnostics, and reason for visit
+
+he confusion matrix, and sensitivity/recall for the “admitted” class (how many admitted patients your model correctly identifies).
+
+ADD VARIABLE SELECTION METHOD BEFORE THIS\*\*\*\*
+
+```{r}
+RQ1Data <- OGData_clean %>%
+  dplyr:: select(admitted,        
+    mri_ct      ,
+    surgery,
+    xray ,
+    lab_tests ,
+    ekg    ,
+    ultrasound ,
+    mammogram ,
+    vaccination ,
+    rx_given ,
+    related_condition,
+    Insurance)
+
+
+```
+
+Train & Test
+
+```{r}
+library(caret)
+
+set.seed(1)
+train_index = createDataPartition(RQ1Data$admitted, p = 0.8, list = FALSE) #createdatapartition ensures that admitted / not admitted are acurately represented in both train and test set*
+train_data = RQ1Data[train_index, ]
+test_data = RQ1Data[-train_index, ]
+```
+
+Logistic Regression
+
+```{r}
+glm_model <- glm(admitted ~ ., data = RQ1Data, family = "binomial")
+vif(glm_model) #no multicolinerarity
+
+#Train Data to predict admitted with Logistic Regression
+glm.admitted=glm(admitted~.,data=train_data,family="binomial") #the . after ~ shows all variables
+summary (glm.admitted)
+
+
+# Make predictions on the test set
+predictionsLR = predict(glm.admitted, newdata = test_data, type = "response")
+
+# Convert to class labels
+LR_pred <- factor(ifelse(predictionsLR > 0.5, 1, 0), levels = c(0, 1))
+LR_truth <- factor(test_data$admitted, levels = c(0, 1))
+
+# Confusion matrix
+LR_cm <- confusionMatrix(LR_pred, LR_truth) #81.9% accuracy
+LR_cm
+
+#MSE
+mean((predictionsLR - test_data$admitted)^2) # 0.129
+
+```
+
+Random Forest RQ1 Handles skewed data better
+
+```{r}
+library(randomForest)
+library(caret)
+
+# Train a Random Forest model to predict admitted
+rf_model = randomForest(as.factor(admitted) ~ ., data = train_data, ntree = 500)
+varImpPlot(rf_model)
+importance(rf_model)
+rf_model
+(plot(rf_model))
+importance(rf_model)
+summary (rf_model)
+
+# Make predictions on the test set
+predictions = predict(rf_model, newdata = test_data)
+
+#model performance
+#rf_model$mse
+#which.min(mse) #362 trees used 
+
+mean(predictions == test_data$admitted) #81.7
+confusionMatrix(predictions, as.factor(test_data$admitted)) #confusion matrix
+
+```
