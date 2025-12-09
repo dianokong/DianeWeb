@@ -8,7 +8,7 @@ website:
   navbar:
     left:
       - href: HomeAbout.qmd
-        text: TEST Me
+        text: TEST Me 
       - href: ContactInfo.qmd
         text: Contact
       - text: Portfolio
